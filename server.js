@@ -55,7 +55,7 @@ io.on('connection', (socket) => {
 
   socket.on('chat message', (msg) => {
     console.log('message: ' + msg);    
-    bot.sendMessage(process.env.CHATID, msg)
+    bot.sendMessage(process.env.CHATID, msg + 'пользователь: ' + socket.id)
       .then(payload => {
         console.log(payload)
         console.log(socket.id)
@@ -91,15 +91,17 @@ io.on('connection', (socket) => {
     // io.emit('chat message', msg); // отправка всем
 
     // отправить конкретному сокету, по socketid
-    let user = users.find(el => el.userid == msg.reply_to_message.from.id)
-    console.log(user)
+    // let user = users.find(el => el.userid == msg.reply_to_message.from.id)
+    // console.log(user)
     console.log(users)
     console.log(msg.reply_to_message.from.id)
-    console.log(user.socket)
+    // console.log(user.socket)
     console.log(msg)
-    if (user) {
-      io.to(user.socket).emit('private message', msg);  
-    }
+    // if (user) {
+    //   io.to(user.socket).emit('private message', msg);  
+    // }
+    let tokenUser = msg.reply_to_message.text
+    io.to(tokenUser.substr(-20)).emit('private message', msg);  
    
   });
 
