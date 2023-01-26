@@ -42,7 +42,13 @@ app.use(cors(corsOptions))
 let users = [];
 
 const token = process.env.TOKEN;
-const bot = new TelegramBot(token, {polling: true});
+const bot = new TelegramBot(token, { polling: true });
+
+const schema = {
+  "name": "",
+  "tokens": [],
+  "message": []
+}
 
 
 app.get('/', (req, res) => {
@@ -53,13 +59,39 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log('a user connected ' + socket.id);
 
+  socket.on('new message', function(data){
+    console.log("данные сообщение", JSON.parse(data));
+    let datamsg = JSON.parse(data)
+    let user = users.find(el => el.name == datamsg.name);
+    console.log(user)
+    if (user) {
+      console.log("данные токена", user.tokens) 
+      user.tokens.push(socket.id)
+       io.to(socket.id).emit('private message', user.message);
+      console.log(user)
+
+    } else {
+      users.push({
+        "name": datamsg.name,
+        "tokens": [socket.id],
+        "message": ["4555"]
+      })
+       
+    }
+ console.log("юзеры", users);
+
+  });
+
+
+
   socket.on('chat message', (msg) => {
+      
     console.log('message: ' + msg);    
     bot.sendMessage(process.env.CHATID, msg + 'пользователь: ' + socket.id)
       .then(payload => {
         console.log(payload)
         console.log(socket.id)
-        users.push({"socket":socket.id, "userid": payload.from.id})
+        // users.push({"socket":socket.id, "userid": payload.from.id})
         console.log(users)
       bot.once('message', (msg) => {
                          console.log(msg) // callback for sendMessage
@@ -72,12 +104,12 @@ io.on('connection', (socket) => {
 });
   });
   console.log(users)
-  socket.on('disconnect', function () {
-    console.log('разъединился: ', socket.id);
-    let newarray = users.filter(el => el.socket == socket.id)
-    users = newarray;
-    console.log("пользоатль новые", users)
-  });
+  // socket.on('disconnect', function () {
+  //   console.log('разъединился: ', socket.id);
+  //   let newarray = users.filter(el => el.socket == socket.id)
+  //   users = newarray;
+  //   console.log("пользоатль новые", users)
+  // });
 });
 
 
@@ -100,8 +132,25 @@ io.on('connection', (socket) => {
     // if (user) {
     //   io.to(user.socket).emit('private message', msg);  
     // }
-    let tokenUser = msg.reply_to_message.text
-    io.to(tokenUser.substr(-20)).emit('private message', msg);  
+
+    let tokenUser = msg.reply_to_message.text.substr(-20);
+      console.log(tokenUser)
+    let userT = users.filter(el => el.tokens.find(elem => elem == tokenUser))
+ 
+    if (userT) {
+      console.log(typeof userT)
+      console.log(userT)
+      console.log(userT[0].tokens)
+      userT[0].tokens.forEach(el => {
+        console.log("el", el)
+         io.to(el).emit('private message', msg);  
+      })
+      userT[0].message.push(msg.text)
+
+      // io.to(userT[0].tokens[0]).emit('private message', msg);  
+      console(users)
+}
+   
    
   });
 
@@ -111,5 +160,5 @@ io.on('connection', (socket) => {
    
   });
 
-  
+
   
