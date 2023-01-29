@@ -2,6 +2,7 @@ const express = require("express");
 const TelegramBot = require('node-telegram-bot-api');
 const app = express();
 const server = require('http').Server(app);
+let S = require('string');
 // const server = http.createServer(app);
 require('dotenv').config()
 const port = process.env.PORT || 5000;
@@ -50,6 +51,12 @@ const schema = {
   "message": []
 }
 
+const schemaMessege = {
+  "text": "",
+  "date": "",
+  "role": ""
+}
+
 
 app.get('/', (req, res) => {
   res.send('hello world')
@@ -61,6 +68,7 @@ io.on('connection', (socket) => {
 
   socket.on('new message', function(data){
     console.log("данные сообщение", JSON.parse(data));
+    
     let datamsg = JSON.parse(data)
     let user = users.find(el => el.name == datamsg.name);
     console.log(user)
@@ -74,7 +82,7 @@ io.on('connection', (socket) => {
       users.push({
         "name": datamsg.name,
         "tokens": [socket.id],
-        "message": ["4555"]
+        "message": []
       })
        
     }
@@ -85,16 +93,29 @@ io.on('connection', (socket) => {
 
 
   socket.on('chat message', (msg) => {
-      
-    console.log('message: ' + msg);    
-    bot.sendMessage(process.env.CHATID, msg + 'пользователь: ' + socket.id)
+    let msgParse = JSON.parse(msg)
+    console.log('message parse: ' + msgParse);  
+    console.log('message: ' + msgParse.message);  
+    let user = users.find(el => el.name == msgParse.name);
+    if (user) {
+      console.log("пользователь найден", user) 
+      let newMassege = {
+        "text": S(msgParse.message).stripTags().s,
+        "date": Date.now(),
+        "role": 0
+      }
+      user.message.push(newMassege)    
+      io.to(socket.id).emit('private message', newMassege);
+    }
+    
+    bot.sendMessage(process.env.CHATID, msgParse.message + ' пользователь: ' + socket.id)
       .then(payload => {
         console.log(payload)
         console.log(socket.id)
         // users.push({"socket":socket.id, "userid": payload.from.id})
         console.log(users)
-      bot.once('message', (msg) => {
-                         console.log(msg) // callback for sendMessage
+      bot.once('message', (msgParse) => {
+                         console.log(msgParse) // callback for sendMessage
                  });
     })
     
@@ -136,16 +157,26 @@ io.on('connection', (socket) => {
     let tokenUser = msg.reply_to_message.text.substr(-20);
       console.log(tokenUser)
     let userT = users.filter(el => el.tokens.find(elem => elem == tokenUser))
+
+
+    let newMassege = {
+      "text": msg.text,
+      "date": Date.now(),
+      "role": 1
+    }
+   
  
     if (userT) {
       console.log(typeof userT)
       console.log(userT)
       console.log(userT[0].tokens)
+      
       userT[0].tokens.forEach(el => {
         console.log("el", el)
-         io.to(el).emit('private message', msg);  
+         io.to(el).emit('private message', newMassege);  
       })
-      userT[0].message.push(msg.text)
+      
+      userT[0].message.push(newMassege)
 
       // io.to(userT[0].tokens[0]).emit('private message', msg);  
       console(users)
