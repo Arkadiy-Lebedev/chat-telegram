@@ -17,7 +17,6 @@ const io = require("socket.io")(server, {
 // const io = new Server(server);
 
 
-
 const cors = require('cors');
 const corsOptions ={
   origin: "*",
@@ -25,20 +24,8 @@ const corsOptions ={
   preflightContinue: false,
   optionsSuccessStatus: 204
 }
-// app.use(cors(corsOptions));
 
 app.use(cors(corsOptions))
-
-
-
-
-// app.use(express.json());
-// // Для парсинга application/x-www-form-urlencoded
-// app.use(express.urlencoded({ extended: true }));
-
-
-
-// app.use("/", require("./routes/posts"));
 
 let users = [];
 
@@ -66,21 +53,22 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log('a user connected ' + socket.id);
 
+  // ловим событие первого подключения клиента
   socket.on('new message', function(data){
     console.log("данные сообщение", JSON.parse(data));
     
     let datamsg = JSON.parse(data)
-    let user = users.find(el => el.name == datamsg.name);
+    let user = users.find(el => el.name == String(datamsg.name));
     console.log(user)
     if (user) {
       console.log("данные токена", user.tokens) 
       user.tokens.push(socket.id)
        io.to(socket.id).emit('private message', user.message);
-      console.log(user)
+      console.log('юзер есть', user)
 
     } else {
       users.push({
-        "name": datamsg.name,
+        "name": String(datamsg.name),
         "tokens": [socket.id],
         "message": []
       })
@@ -91,6 +79,7 @@ io.on('connection', (socket) => {
   });
 
 
+  // ловим события сообщений от клиента
 
   socket.on('chat message', (msg) => {
     let msgParse = JSON.parse(msg)
@@ -134,7 +123,7 @@ io.on('connection', (socket) => {
 });
 
 
-
+// ловим сообщения с телеграмм и направляем пользователю
   bot.on('message', (msg) => {
     const chatId = msg.chat.id;
     
@@ -145,14 +134,11 @@ io.on('connection', (socket) => {
 
     // отправить конкретному сокету, по socketid
     // let user = users.find(el => el.userid == msg.reply_to_message.from.id)
-    // console.log(user)
+   
     console.log(users)
     console.log(msg.reply_to_message.from.id)
-    // console.log(user.socket)
+   
     console.log(msg)
-    // if (user) {
-    //   io.to(user.socket).emit('private message', msg);  
-    // }
 
     let tokenUser = msg.reply_to_message.text.substr(-20);
       console.log(tokenUser)
@@ -178,7 +164,7 @@ io.on('connection', (socket) => {
       
       userT[0].message.push(newMassege)
 
-      // io.to(userT[0].tokens[0]).emit('private message', msg);  
+     
       console(users)
 }
    
