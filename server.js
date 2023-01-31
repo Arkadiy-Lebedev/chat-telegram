@@ -61,6 +61,10 @@ app.get('/', (req, res) => {
   res.send('hello world')
 });
 
+app.get('/info', (req, res) => {
+  res.send(users)
+});
+
 
 io.on('connection', (socket) => {
   console.log('a user connected ' + socket.id);
@@ -83,7 +87,7 @@ io.on('connection', (socket) => {
         "tokens": [socket.id],
         "message": []
       })
-       
+      io.to(socket.id).emit('private message', []);
     }
  console.log("юзеры", users);
 
